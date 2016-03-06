@@ -1,11 +1,48 @@
-//example
-//translate([-50,44,-8]) import("x-template.stl");
-
 //main body
-rotate([270,0,0]) union(){
-    scale([1.1,0.9,1]) cylinder(15,5.5,5.5, $fn=6);
-    translate([0,0,15]) scale([1.1,0.9,1])cylinder(5,5.5,4, $fn=6);
-    translate([0,0,20]) scale([1.1,0.9,1])cylinder(30,4,2, $fn=6);
+
+BODY_BACK_LENGTH = 15;
+CABIN_LENGTH = 5;
+
+FLATTEN_BODY_FACTOR = [1.1, 0.9, 1];
+BODY_PART_REFINEMENT = 6;
+BODY_RADIUS = 5.5;
+CABIN_FRONT_RADIUS = 4;
+
+module body_back() {
+
+	scale(FLATTEN_BODY_FACTOR) 
+		cylinder(BODY_BACK_LENGTH, BODY_RADIUS, BODY_RADIUS, $fn=BODY_PART_REFINEMENT);
+}
+
+
+module cabin() {
+	
+	offset = [0, 0, BODY_BACK_LENGTH];
+	
+	translate(offset) 
+		scale(FLATTEN_BODY_FACTOR)
+			cylinder(CABIN_LENGTH ,BODY_RADIUS ,CABIN_FRONT_RADIUS, $fn=BODY_PART_REFINEMENT);
+}
+
+module body_front() {
+
+	offset = [0, 0 ,BODY_BACK_LENGTH + CABIN_LENGTH];
+	length = 30;
+	front_radius = 2;
+
+	translate(offset) 
+		scale(FLATTEN_BODY_FACTOR)
+			cylinder(length ,CABIN_FRONT_RADIUS ,front_radius ,$fn=BODY_PART_REFINEMENT);
+}
+
+module main_body() {
+	right = [270,0,0];
+	rotate(right) 
+		union() {
+		    body_back();
+		    cabin();
+			body_front();
+		}
 }
 
 //nose
@@ -149,3 +186,9 @@ rotate([-90,0,1]) translate([0.7,-0.55,29.3]) union(){
     translate([0,0,29.7]) cylinder(7,.5,.2,$fn=30);
 }
 }
+
+module xwing() {
+	main_body();
+}
+
+xwing();
