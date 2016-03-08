@@ -2,11 +2,15 @@
 
 BODY_BACK_LENGTH = 15;
 CABIN_LENGTH = 5;
+BODY_FRONT_LENGTH = 30;
 
 FLATTEN_BODY_FACTOR = [1.1, 0.9, 1];
 BODY_PART_REFINEMENT = 6;
 BODY_RADIUS = 5.5;
 CABIN_FRONT_RADIUS = 4;
+
+SHIP_NOSE_CUBE_HELPER_SIZE = 20;
+SHIP_NOSE_ROTATION_CORRECTION_FOR_HELPER_CYLINDER = 5;
 
 module body_back() {
 
@@ -27,12 +31,11 @@ module cabin() {
 module body_front() {
 
 	offset = [0, 0 ,BODY_BACK_LENGTH + CABIN_LENGTH];
-	length = 30;
 	front_radius = 2;
 
 	translate(offset) 
 		scale(FLATTEN_BODY_FACTOR)
-			cylinder(length ,CABIN_FRONT_RADIUS ,front_radius ,$fn=BODY_PART_REFINEMENT);
+			cylinder(BODY_FRONT_LENGTH ,CABIN_FRONT_RADIUS ,front_radius ,$fn=BODY_PART_REFINEMENT);
 }
 
 module main_body() {
@@ -45,20 +48,98 @@ module main_body() {
 		}
 }
 
-//nose
-translate([-1.5,49.8,-0.5]) scale(0.5) rotate([90,0,90]) union(){
-difference(){
-    scale([1.5,0.8,1]) translate([0,-5,0]) cylinder(6,10,10, $fn=100);
-    translate([-20,-15,-1]) cube(20);
-    translate([-1,-20,-1]) cube(20);
+
+module ship_nose_helper_cylinder(flatten_factor_y, correction) {
+	
+    flatten_factor = [1.5, flatten_factor_y, 1];
+	offset = [0, correction, 0];
+	
+    refinement = 100;
+	length = 6;
+	radius = 10;
+    
+	scale(flatten_factor)
+		translate(offset) 
+			cylinder(h=length, r1=radius, r2=radius, $fn=refinement);
 }
-difference(){
-    scale([1.5,0.4,1]) translate([0,5,0]) cylinder(6,10,10, $fn=100);
-    translate([-20,-10,-1]) cube(20);
-    translate([-1,0.01,-1]) cube(20);
+
+module ship_nose_helper_cube(offset) {
+    
+    translate(offset) 
+		cube(SHIP_NOSE_CUBE_HELPER_SIZE);
 }
-rotate([4,90,0]) scale([0.9,0.6,1]) translate([-3.4,1.7,0]) cylinder(10.8,5,2, $fn=6);
+
+module ship_nose_upper_part() {
+    
+	cube_offset_first_cut = [-20, -15, -1];
+    cube_offset_second_cut = [-1, -20, -1];
+    flatten_factor_y = 0.8;
+    correction = -SHIP_NOSE_ROTATION_CORRECTION_FOR_HELPER_CYLINDER;
+    
+    difference(){
+        ship_nose_helper_cylinder(flatten_factor_y, correction);
+        ship_nose_helper_cube(cube_offset_first_cut);  
+        ship_nose_helper_cube(cube_offset_second_cut);
+    }
 }
+
+module ship_nose_lower_part() {
+
+    cube_offset_first_cut = [-20, -10, -1];
+    cube_offset_second_cut = [-1, -0.01, -1];
+    flatten_factor_y = 0.4;
+    correction = SHIP_NOSE_ROTATION_CORRECTION_FOR_HELPER_CYLINDER;
+
+	difference(){
+        ship_nose_helper_cylinder(flatten_factor_y, correction);
+        ship_nose_helper_cube(cube_offset_first_cut);  
+        ship_nose_helper_cube(cube_offset_second_cut);
+	}
+}
+
+module ship_inner_part() {
+    
+    flatten_factor = [0.9, 0.6, 1];
+    slightly_rotate_and_turn_right = [4, 90, 0];
+    offset = [-3.4, 1.7, 0];
+    back_radius = 5;
+    front_radius = 2;
+    length = 10.8;
+    
+	rotate(slightly_rotate_and_turn_right) 
+		scale(flatten_factor) 
+			translate(offset) 
+				cylinder(length, back_radius, front_radius, $fn=BODY_PART_REFINEMENT);
+}
+
+function half(value) = value/2;
+
+
+
+module ship_nose() {
+
+    cylinder_radius = 6;
+    offset_x = half(half(cylinder_radius));
+    offset_y = BODY_BACK_LENGTH + CABIN_LENGTH + BODY_FRONT_LENGTH;
+    offset_z = -0.5;
+    adjustment = 0.2;
+    to_half = 0.5;
+    left_and_turn_right = [90,0,90];
+    
+    offset = [-offset_x, offset_y - adjustment, offset_z];
+   
+	translate(offset) 
+		scale(to_half) 
+			rotate(left_and_turn_right) 
+				union() {
+			    	ship_nose_upper_part();
+					ship_nose_lower_part();
+					ship_inner_part();
+				}
+}
+
+
+
 
 //bottom right wing
 scale(0.6) translate([8,0,-2]) rotate([0,13,0]) linear_extrude(0.6) polygon([[0,0],[1,0],[1,2],[12,2],[13,0],[45,10],[48,10],[48,13],[49,13],[49,18],[48.5,19.5],[48.5,25],[0,25]],[[0,1,2,3,4,5,6,7,8,9,10,11,12]]);
@@ -189,6 +270,7 @@ rotate([-90,0,1]) translate([0.7,-0.55,29.3]) union(){
 
 module xwing() {
 	main_body();
+	ship_nose();
 }
 
 xwing();
